@@ -34,7 +34,7 @@ cd my-terraform-project
 ### 3. Obtain Yandex Cloud Credentials
 
 Get your credentials from Yandex Cloud Console:
-- **YC_TOKEN**: [OAuth token](https://oauth.yandex.ru/verification_code)
+- **YC_TOKEN**: [OAuth token](https://yandex.cloud/en/docs/iam/concepts/authorization/oauth-token)
 - **YC_CLOUD_ID**: Cloud ID
 - **YC_FOLDER_ID**: Folder ID
 
