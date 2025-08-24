@@ -1,0 +1,59 @@
+name: Build and Push Docker Image on PR Merge
+
+# Условия запуска: при закрытии PR, если он был мержжен в master/main
+on:
+  pull_request:
+    types: [closed]
+    branches: [main] # Сработает для обеих распространенных главных веток
+
+# Переменные для удобства
+env:
+  IMAGE_NAME: yc-terraform
+  DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+
+jobs:
+  build-and-push:
+    # Запускаем job только если PR был МЕРЖНУТ (а не просто закрыт)
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+
+    steps:
+      # Шаг 1: Checkout кода. Важно использовать ref SHA мерж-коммита!
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.merge_commit_sha }}
+
+      # Шаг 2: Логин в Docker Hub
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      # Шаг 3: Генерация тегов
+      - name: Extract Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=raw,value=latest
+            type=raw,value=pr-${{ github.event.pull_request.number }}
+            type=sha,prefix=,suffix=,format=long
+
+      # Шаг 4: Сборка и пуш образа
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+
+      # Шаг 5: (Опционально) Уведомление о успешной сборке
+      - name: Notify success
+        run: |
+          echo "✅ Image successfully built and pushed!"
+          echo "Tags: ${{ steps.meta.outputs.tags }}"
