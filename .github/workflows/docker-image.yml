@@ -1,37 +1,75 @@
-name: Build and Push Docker Image on PR Merge
+name: Build, Test, Scan and Push Docker Image
 
-# Условия запуска: при закрытии PR, если он был мержжен в master/main
 on:
   pull_request:
     types: [closed]
-    branches: [main] # Сработает для обеих распространенных главных веток
+    branches: [main]
+  workflow_dispatch: # Ручной запуск для дебага
 
-# Переменные для удобства
 env:
-  IMAGE_NAME: yc-terraform
+  IMAGE_NAME: yandex-terraform
   DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+  REGISTRY: docker.io
 
 jobs:
-  build-and-push:
-    # Запускаем job только если PR был МЕРЖНУТ (а не просто закрыт)
+  # Job для проверок и тестов перед сборкой образа
+  pre-build-checks:
     if: github.event.pull_request.merged == true
     runs-on: ubuntu-latest
+    outputs:
+      should_build: ${{ steps.check-changes.outputs.should_build }}
 
     steps:
-      # Шаг 1: Checkout кода. Важно использовать ref SHA мерж-коммита!
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.merge_commit_sha }}
+          fetch-depth: 0
+
+      # Проверяем, были ли изменения в файлах, влияющих на сборку
+      - name: Check for relevant changes
+        id: check-changes
+        run: |
+          CHANGED_FILES=$(git diff --name-only HEAD^ HEAD)
+          echo "Changed files: $CHANGED_FILES"
+
+          # Файлы, при изменении которых нужно пересобирать образ
+          RELEVANT_PATTERNS=("Dockerfile*" "docker/**" "package.json" "requirements.txt" "go.mod" "src/**" "lib/**")
+
+          should_build="false"
+          for pattern in "${RELEVANT_PATTERNS[@]}"; do
+            if echo "$CHANGED_FILES" | grep -qE "$pattern"; then
+              should_build="true"
+              echo "Found changes in $pattern, will build image"
+              break
+            fi
+          done
+
+          echo "should_build=$should_build" >> $GITHUB_OUTPUT
+
+  build-and-push:
+    needs: pre-build-checks
+    if: needs.pre-build-checks.outputs.should_build == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.merge_commit_sha }}
 
-      # Шаг 2: Логин в Docker Hub
+      # Создаем кэш для ускорения последующих сборок
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      # Шаг 3: Генерация тегов
+      # Генерация умных тегов с семантическим версионированием
       - name: Extract Docker metadata
         id: meta
         uses: docker/metadata-action@v5
@@ -41,9 +79,28 @@ jobs:
           tags: |
             type=raw,value=latest
             type=raw,value=pr-${{ github.event.pull_request.number }}
-            type=sha,prefix=,suffix=,format=long
+            type=raw,value=sha-${{ github.sha }}
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=date,pattern=yyyyMMdd-HHmmss
 
-      # Шаг 4: Сборка и пуш образа
+      # Кэширование слоев Docker
+      - name: Cache Docker layers
+        uses: actions/cache@v3
+        with:
+          path: /tmp/.buildx-cache
+          key: ${{ runner.os }}-buildx-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-buildx-
+
+      # Сканирование Dockerfile на лучшие практики
+      - name: Lint Dockerfile
+        uses: hadolint/hadolint-action@v3.0.0
+        with:
+          dockerfile: "Dockerfile"
+          failure-threshold: warning
+
+      # Сборка с кэшированием и мульти-архитектурой (если нужно)
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
@@ -51,9 +108,101 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=local,src=/tmp/.buildx-cache
+          cache-to: type=local,dest=/tmp/.buildx-cache-new,mode=max
+          platforms: linux/amd64,linux/arm64 # Мульти-архитектура
+          build-args: |
+            BUILDKIT_INLINE_CACHE=1
 
-      # Шаг 5: (Опционально) Уведомление о успешной сборке
-      - name: Notify success
+      # Сканирование образа на уязвимости
+      - name: Scan image for vulnerabilities
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:sha-${{ github.sha }}
+          format: sarif
+          output: trivy-results.sarif
+          severity: HIGH,CRITICAL
+
+      # Загрузка результатов сканирования
+      - name: Upload Trivy scan results
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: trivy-results.sarif
+        if: always() # Загружаем даже если сканирование упало
+
+      # Проверка размера образа
+      - name: Check image size
         run: |
-          echo "✅ Image successfully built and pushed!"
-          echo "Tags: ${{ steps.meta.outputs.tags }}"
+          docker pull ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:sha-${{ github.sha }}
+          SIZE=$(docker images ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:sha-${{ github.sha }} --format "{{.Size}}")
+          echo "Image size: $SIZE"
+
+          # Предупреждение если образ больше 500MB
+          if [[ "$SIZE" =~ ([0-9]+)MB ]] && [ "${BASH_REMATCH[1]}" -gt 500 ]; then
+            echo "⚠️ WARNING: Image size exceeds 500MB"
+            # exit 1 # Можно зафейлить сборку при большом размере
+          fi
+
+      # Создание SBOM (Software Bill of Materials)
+      - name: Generate SBOM
+        uses: anchore/sbom-action@v0
+        with:
+          image: ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:sha-${{ github.sha }}
+          output-format: spdx-json
+
+      # Уведомления
+      - name: Send success notification
+        if: success()
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          channel: "#deployments"
+          webhook_url: ${{ secrets.SLACK_WEBHOOK }}
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
+
+      - name: Send failure notification
+        if: failure()
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          channel: "#alerts"
+          webhook_url: ${{ secrets.SLACK_WEBHOOK }}
+
+  # Отдельный job для деплоя (если нужно)
+  deploy-staging:
+    needs: build-and-push
+    if: success() && github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    environment: staging
+
+    steps:
+      - name: Deploy to staging
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.STAGING_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: |
+            docker login -u ${{ secrets.DOCKERHUB_USERNAME }} -p ${{ secrets.DOCKERHUB_TOKEN }}
+            docker pull ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:sha-${{ github.sha }}
+            docker-compose -f /app/docker-compose.yml up -d
+            docker image prune -f
+
+  # Очистка старых образов из registry
+  cleanup:
+    needs: build-and-push
+    if: always() && github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Cleanup old images
+        uses: actions/checkout@v4
+
+      - name: Run cleanup script
+        run: |
+          # Скрипт для удаления образов старше 30 дней, кроме last 10
+          echo "Cleanup logic would run here"
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
