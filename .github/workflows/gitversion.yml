@@ -44,4 +44,4 @@ jobs:
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
           git tag -a "$TAG" -m "Release ${{ steps.gitversion.outputs.FullSemVer }}"
-          git push origin "$TAG"
+           git push https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git "$TAG"
