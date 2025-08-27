@@ -70,6 +70,7 @@ jobs:
         with:
           dockerfile: Dockerfile
           failure-threshold: warning
+          verbose: true
 
       - name: Build image (no push)
         uses: docker/build-push-action@v5
