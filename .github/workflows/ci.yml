@@ -1,0 +1,95 @@
+# .github/workflows/ci.yml
+name: CI - Build, Test, Scan
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: "Optional reason for manual run"
+        required: false
+        type: string
+jobs:
+  pre-build-checks:
+    runs-on: ubuntu-latest
+    outputs:
+      should_build: ${{ steps.check-changes.outputs.should_build }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check for relevant changes
+        id: check-changes
+        run: |
+          # Определяем, изменились ли файлы, влияющие на сборку
+          CHANGED_FILES=$(git diff --name-only HEAD^ HEAD)
+          echo "Changed files: $CHANGED_FILES"
+
+          RELEVANT_PATTERNS=(
+            "Dockerfile*"
+            "docker/**"
+            "package.json"
+            "requirements.txt"
+            "go.mod"
+            "src/**"
+            "lib/**"
+          )
+
+          should_build="false"
+          for pattern in "${RELEVANT_PATTERNS[@]}"; do
+            if [[ "$CHANGED_FILES" =~ $pattern ]]; then
+              should_build="true"
+              echo "Found changes in $pattern → will build"
+              break
+            fi
+          done
+
+          echo "should_build=$should_build" >> $GITHUB_OUTPUT
+
+  build-and-scan:
+    needs: pre-build-checks
+    if: needs.pre-build-checks.outputs.should_build == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Lint Dockerfile
+        uses: hadolint/hadolint-action@v3.0.0
+        with:
+          dockerfile: Dockerfile
+          failure-threshold: warning
+
+      - name: Build image (no push)
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: false
+          tags: temp:latest
+          cache-from: type=local,src=/tmp/.buildx-cache
+          cache-to: type=local,dest=/tmp/.buildx-cache-new,mode=max
+
+      - name: Scan image for vulnerabilities
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: temp:latest
+          format: sarif
+          output: trivy-results.sarif
+          severity: HIGH,CRITICAL
+
+      - name: Upload Trivy results to GitHub Code Scanning
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: trivy-results.sarif
+        if: always()
