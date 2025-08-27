@@ -37,6 +37,8 @@ jobs:
 
       - name: Create Git tag
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN  }}
         run: |
           TAG="v${{ steps.gitversion.outputs.MajorMinorPatch }}"
           git config user.name "GitHub Actions"
