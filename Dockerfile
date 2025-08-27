@@ -1,6 +1,6 @@
 FROM alpine:3.22
 
-# Установка основных утилит
+# Install essential utilities
 RUN apk add --no-cache \
     curl \
     jq \
@@ -10,14 +10,14 @@ RUN apk add --no-cache \
     gnupg \
     unzip
 
-# Установка Yandex Cloud CLI (yc) - исправленная версия
+# Install Yandex Cloud CLI (yc) - corrected version
 RUN curl -sSL https://storage.yandexcloud.net/yandexcloud-yc/install.sh | \
     bash -s -- -a && \
     mv /root/yandex-cloud/bin/yc /usr/local/bin/ && \
     rm -rf /root/yandex-cloud && \
     yc version
 
-# Установка Terraform
+# Install Terraform
 ENV TERRAFORM_VERSION=1.13.0
 ENV TERRAFORM_MIRROR=https://hashicorp-releases.yandexcloud.net/terraform
 
@@ -28,27 +28,27 @@ RUN curl -LO ${TERRAFORM_MIRROR}/${TERRAFORM_VERSION}/terraform_${TERRAFORM_VERS
     && chmod +x /usr/local/bin/terraform \
     && terraform version
 
-# Создание рабочей директории
+# Create working directory
 WORKDIR /app
 
-# Копирование скриптов
+# Copy scripts
 COPY scripts/ /usr/local/bin/
 
-# Настройка прав доступа
+# Set permissions
 RUN chmod +x /usr/local/bin/*.sh && \
     mkdir -p /root/.ssh && \
     chmod 700 /root/.ssh
 
-# Создание default конфигурации Terraform
+# Create default Terraform configuration
 RUN mkdir -p /app/defaults
 COPY --chmod=644 defaults/main.tf /app/defaults/
 COPY --chmod=644 defaults/variables.tf /app/defaults/
 
-# Установка переменных окружения по умолчанию
+# Set default environment variables
 ENV YC_TOKEN=""
 ENV YC_CLOUD_ID=""
 ENV YC_FOLDER_ID=""
 ENV YC_ZONE="ru-central1-a"
 
-# Точка входа
+# Entry point
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
