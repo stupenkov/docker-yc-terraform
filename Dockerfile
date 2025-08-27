@@ -8,7 +8,9 @@ RUN apk add --no-cache \
     git \
     openssh-client \
     gnupg \
-    unzip
+    unzip \
+    && addgroup -g 1000 -S appgroup \
+    && adduser -S appuser -u 1000 -G appgroup
 
 # Install Yandex Cloud CLI (yc) - corrected version
 RUN curl -sSL https://storage.yandexcloud.net/yandexcloud-yc/install.sh | \
@@ -28,21 +30,23 @@ RUN curl -LO ${TERRAFORM_MIRROR}/${TERRAFORM_VERSION}/terraform_${TERRAFORM_VERS
     && chmod +x /usr/local/bin/terraform \
     && terraform version
 
-# Create working directory
+# Create working directory and set permissions
 WORKDIR /app
+RUN chown -R appuser:appgroup /app
 
-# Copy scripts
-COPY scripts/ /usr/local/bin/
-
-# Set permissions
-RUN chmod +x /usr/local/bin/*.sh && \
-    mkdir -p /root/.ssh && \
-    chmod 700 /root/.ssh
+# Copy scripts and set permissions
+COPY scripts/ /home/appuser/
+RUN chmod +x /home/appuser/*.sh && \
+    mkdir -p /home/appuser/.ssh && \
+    chmod 700 /home/appuser/.ssh && \
+    chown -R appuser:appgroup /home/appuser/.ssh
 
 # Create default Terraform configuration
-RUN mkdir -p /app/defaults
+RUN mkdir -p /app/defaults && \
+    chown -R appuser:appgroup /app/defaults
 COPY --chmod=644 defaults/main.tf /app/defaults/
 COPY --chmod=644 defaults/variables.tf /app/defaults/
+RUN chown -R appuser:appgroup /app/defaults
 
 # Set default environment variables
 ENV YC_TOKEN=""
@@ -50,5 +54,12 @@ ENV YC_CLOUD_ID=""
 ENV YC_FOLDER_ID=""
 ENV YC_ZONE="ru-central1-a"
 
+# Switch to non-root user
+USER appuser
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD curl -f https://storage.yandexcloud.net/ || exit 1
+
 # Entry point
-ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
+ENTRYPOINT ["/home/appuser/entrypoint.sh"]
