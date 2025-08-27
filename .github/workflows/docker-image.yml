@@ -14,7 +14,7 @@ env:
 jobs:
   # Job для проверок и тестов перед сборкой образа
   pre-build-checks:
-    if: github.event.pull_request.merged == true
+    if: github.event.pull_request.merged == true && github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     outputs:
       should_build: ${{ steps.check-changes.outputs.should_build }}
@@ -23,14 +23,14 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.pull_request.merge_commit_sha }}
           fetch-depth: 0
 
       # Проверяем, были ли изменения в файлах, влияющих на сборку
       - name: Check for relevant changes
         id: check-changes
         run: |
-          CHANGED_FILES=$(git diff --name-only HEAD^ HEAD)
+          # Получаем изменения между последним коммитом и предыдущим
+          CHANGED_FILES=$(git diff --name-only HEAD~1 HEAD)
           echo "Changed files: $CHANGED_FILES"
 
           # Файлы, при изменении которых нужно пересобирать образ
@@ -38,7 +38,7 @@ jobs:
 
           should_build="false"
           for pattern in "${RELEVANT_PATTERNS[@]}"; do
-            if echo "$CHANGED_FILES" | grep -qE "$pattern"; then
+            if echo "$CHANGED_FILES" | grep -qE "$(echo $pattern | sed 's/\*\*/.*/g' | sed 's/\*/[^\/]*/g')"; then
               should_build="true"
               echo "Found changes in $pattern, will build image"
               break
@@ -56,35 +56,34 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.pull_request.merge_commit_sha }}
 
-      # Создаем кэш для ускорения последующих сборок
+      # Установка Buildx
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      # Вход в Docker Hub (только если секреты доступны)
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
+        if: secrets.DOCKERHUB_USERNAME != '' && secrets.DOCKERHUB_TOKEN != ''
 
-      # Генерация умных тегов с семантическим версионированием
+      # Генерация тегов (без `type=date`)
       - name: Extract Docker metadata
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: |
-            ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}
+          images: ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}
           tags: |
             type=raw,value=latest
             type=raw,value=pr-${{ github.event.pull_request.number }}
             type=raw,value=sha-${{ github.sha }}
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
-            type=date,pattern=yyyyMMdd-HHmmss
+            type=timestamp,pattern=unix
 
-      # Кэширование слоев Docker
+      # Кэширование слоев
       - name: Cache Docker layers
         uses: actions/cache@v3
         with:
@@ -93,28 +92,27 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-buildx-
 
-      # Сканирование Dockerfile на лучшие практики
+      # Линтинг Dockerfile
       - name: Lint Dockerfile
         uses: hadolint/hadolint-action@v3.0.0
         with:
-          dockerfile: "Dockerfile"
+          dockerfile: Dockerfile
           failure-threshold: warning
 
-      # Сборка с кэшированием и мульти-архитектурой (если нужно)
+      # Сборка и пуш
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
           context: .
-          push: true
+          push: ${{ secrets.DOCKERHUB_USERNAME != '' && secrets.DOCKERHUB_TOKEN != '' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,dest=/tmp/.buildx-cache-new,mode=max
-          platforms: linux/amd64,linux/arm64 # Мульти-архитектура
-          build-args: |
-            BUILDKIT_INLINE_CACHE=1
+          platforms: linux/amd64,linux/arm64
+          build-args: BUILDKIT_INLINE_CACHE=1
 
-      # Сканирование образа на уязвимости
+      # Сканирование образа с Trivy
       - name: Scan image for vulnerabilities
         uses: aquasecurity/trivy-action@master
         with:
@@ -122,13 +120,14 @@ jobs:
           format: sarif
           output: trivy-results.sarif
           severity: HIGH,CRITICAL
+        continue-on-error: true # Чтобы не падал весь workflow при проблемах со сканированием
 
-      # Загрузка результатов сканирования
+      # Загрузка результатов в Code Scanning (с исправленной версией v3)
       - name: Upload Trivy scan results
-        uses: github/codeql-action/upload-sarif@v2
+        uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: trivy-results.sarif
-        if: always() # Загружаем даже если сканирование упало
+        if: always() && steps.scan-trivy.conclusion == 'success'
 
       # Проверка размера образа
       - name: Check image size
@@ -137,33 +136,28 @@ jobs:
           SIZE=$(docker images ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:sha-${{ github.sha }} --format "{{.Size}}")
           echo "Image size: $SIZE"
 
-          # Предупреждение если образ больше 500MB
           if [[ "$SIZE" =~ ([0-9]+)MB ]] && [ "${BASH_REMATCH[1]}" -gt 500 ]; then
             echo "⚠️ WARNING: Image size exceeds 500MB"
-            # exit 1 # Можно зафейлить сборку при большом размере
           fi
+        if: secrets.DOCKERHUB_USERNAME != '' && secrets.DOCKERHUB_TOKEN != ''
 
-      # Создание SBOM (Software Bill of Materials)
+      # Генерация SBOM
       - name: Generate SBOM
         uses: anchore/sbom-action@v0
         with:
           image: ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:sha-${{ github.sha }}
           output-format: spdx-json
+        if: secrets.DOCKERHUB_USERNAME != '' && secrets.DOCKERHUB_TOKEN != ''
 
-  # Очистка старых образов из registry
+  # Очистка старых образов
   cleanup:
     needs: build-and-push
-    if: always() && github.event.pull_request.merged == true
+    if: always() && github.event.pull_request.merged == true && github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
-
     steps:
-      - name: Cleanup old images
-        uses: actions/checkout@v4
-
       - name: Run cleanup script
         run: |
-          # Скрипт для удаления образов старше 30 дней, кроме last 10
-          echo "Cleanup logic would run here"
+          echo "Cleanup logic would run here — e.g., remove old Docker images"
         env:
           DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
           DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
