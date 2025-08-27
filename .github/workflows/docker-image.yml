@@ -49,32 +49,35 @@ jobs:
 
   build-and-push:
     needs: pre-build-checks
-    if: needs.pre-build-checks.outputs.should_build == 'true'
+    if: >
+      needs.pre-build-checks.outputs.should_build == 'true' &&
+      github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    env:
+      IMAGE_NAME: yandex-terraform
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # Установка Buildx
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      # Вход в Docker Hub (только если секреты доступны)
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-        if: secrets.DOCKERHUB_USERNAME != '' && secrets.DOCKERHUB_TOKEN != ''
+          username: ${{ env.DOCKERHUB_USERNAME }}
+          password: ${{ env.DOCKERHUB_TOKEN }}
+        if: env.DOCKERHUB_USERNAME != '' && env.DOCKERHUB_TOKEN != ''
 
-      # Генерация тегов (без `type=date`)
       - name: Extract Docker metadata
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}
+          images: ${{ env.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}
           tags: |
             type=raw,value=latest
             type=raw,value=pr-${{ github.event.pull_request.number }}
@@ -83,7 +86,6 @@ jobs:
             type=semver,pattern={{major}}.{{minor}}
             type=timestamp,pattern=unix
 
-      # Кэширование слоев
       - name: Cache Docker layers
         uses: actions/cache@v3
         with:
@@ -92,19 +94,17 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-buildx-
 
-      # Линтинг Dockerfile
       - name: Lint Dockerfile
         uses: hadolint/hadolint-action@v3.0.0
         with:
           dockerfile: Dockerfile
           failure-threshold: warning
 
-      # Сборка и пуш
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
           context: .
-          push: ${{ secrets.DOCKERHUB_USERNAME != '' && secrets.DOCKERHUB_TOKEN != '' }}
+          push: ${{ env.DOCKERHUB_USERNAME != '' && env.DOCKERHUB_TOKEN != '' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=local,src=/tmp/.buildx-cache
@@ -112,42 +112,37 @@ jobs:
           platforms: linux/amd64,linux/arm64
           build-args: BUILDKIT_INLINE_CACHE=1
 
-      # Сканирование образа с Trivy
       - name: Scan image for vulnerabilities
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:sha-${{ github.sha }}
+          image-ref: ${{ env.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:sha-${{ github.sha }}
           format: sarif
           output: trivy-results.sarif
           severity: HIGH,CRITICAL
-        continue-on-error: true # Чтобы не падал весь workflow при проблемах со сканированием
+        continue-on-error: true
 
-      # Загрузка результатов в Code Scanning (с исправленной версией v3)
       - name: Upload Trivy scan results
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: trivy-results.sarif
         if: always() && steps.scan-trivy.conclusion == 'success'
 
-      # Проверка размера образа
       - name: Check image size
         run: |
-          docker pull ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:sha-${{ github.sha }}
-          SIZE=$(docker images ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:sha-${{ github.sha }} --format "{{.Size}}")
+          docker pull ${{ env.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:sha-${{ github.sha }}
+          SIZE=$(docker images ${{ env.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:sha-${{ github.sha }} --format "{{.Size}}")
           echo "Image size: $SIZE"
-
           if [[ "$SIZE" =~ ([0-9]+)MB ]] && [ "${BASH_REMATCH[1]}" -gt 500 ]; then
             echo "⚠️ WARNING: Image size exceeds 500MB"
           fi
-        if: secrets.DOCKERHUB_USERNAME != '' && secrets.DOCKERHUB_TOKEN != ''
+        if: env.DOCKERHUB_USERNAME != '' && env.DOCKERHUB_TOKEN != ''
 
-      # Генерация SBOM
       - name: Generate SBOM
         uses: anchore/sbom-action@v0
         with:
-          image: ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:sha-${{ github.sha }}
+          image: ${{ env.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:sha-${{ github.sha }}
           output-format: spdx-json
-        if: secrets.DOCKERHUB_USERNAME != '' && secrets.DOCKERHUB_TOKEN != ''
+        if: env.DOCKERHUB_USERNAME != '' && env.DOCKERHUB_TOKEN != ''
 
   # Очистка старых образов
   cleanup:
