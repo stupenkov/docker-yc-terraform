@@ -1,0 +1,41 @@
+name: Run GitVersion
+
+on:
+  push:
+    branches:
+      - "**"
+  pull_request:
+    branches:
+      - "**"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup GitVersion
+        uses: gittools/actions/gitversion/setup@v4
+        with:
+          version-string: "6.x"
+
+      - name: Execute GitVersion
+        uses: gittools/actions/gitversion/execute@v4
+        id: gitversion
+
+      # Пример: вывести версию
+      - name: Output version
+        run: |
+          echo "SemVer: ${{ steps.gitversion.outputs.SemVer }}"
+          echo "FullSemVer: ${{ steps.gitversion.outputs.FullSemVer }}"
+          echo "AssemblySemVer: ${{ steps.gitversion.outputs.AssemblySemVer }}"
+          echo "MajorMinorPatch: ${{ steps.gitversion.outputs.MajorMinorPatch }}"
+
+      # Пример: использовать в последующих шагах
+      - name: Use version in script
+        run: |
+          echo "Building version ${{ steps.gitversion.outputs.FullSemVer }}"
