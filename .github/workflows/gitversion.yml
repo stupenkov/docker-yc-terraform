@@ -3,7 +3,7 @@ name: Run GitVersion
 on:
   push:
     branches:
-      - "**"
+      - "main"
   pull_request:
     branches:
       - "**"
@@ -27,7 +27,7 @@ jobs:
         uses: gittools/actions/gitversion/execute@v4
         id: gitversion
 
-      # Пример: вывести версию
+      # Shows the version in the logs
       - name: Output version
         run: |
           echo "SemVer: ${{ steps.gitversion.outputs.SemVer }}"
@@ -35,7 +35,11 @@ jobs:
           echo "AssemblySemVer: ${{ steps.gitversion.outputs.AssemblySemVer }}"
           echo "MajorMinorPatch: ${{ steps.gitversion.outputs.MajorMinorPatch }}"
 
-      # Пример: использовать в последующих шагах
-      - name: Use version in script
+      - name: Create Git tag
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: |
-          echo "Building version ${{ steps.gitversion.outputs.FullSemVer }}"
+          TAG="v${{ steps.gitversion.outputs.MajorMinorPatch }}"
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git tag -a "$TAG" -m "Release ${{ steps.gitversion.outputs.FullSemVer }}"
+          git push origin "$TAG"
