@@ -19,12 +19,12 @@ jobs:
           fetch-depth: 0
 
       - name: Setup GitVersion
-        uses: gittools/actions/setup@v4
+        uses: gittools/actions/gitversion/setup@v4
         with:
           version-string: "6.x"
 
       - name: Execute GitVersion
-        uses: gittools/actions/execute@v4
+        uses: gittools/actions/gitversion/execute@v4
         id: gitversion
 
       # Пример: вывести версию
