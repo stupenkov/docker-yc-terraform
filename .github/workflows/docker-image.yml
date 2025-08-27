@@ -150,45 +150,6 @@ jobs:
           image: ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:sha-${{ github.sha }}
           output-format: spdx-json
 
-      # Уведомления
-      - name: Send success notification
-        if: success()
-        uses: 8398a7/action-slack@v3
-        with:
-          status: ${{ job.status }}
-          channel: "#deployments"
-          webhook_url: ${{ secrets.SLACK_WEBHOOK }}
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
-
-      - name: Send failure notification
-        if: failure()
-        uses: 8398a7/action-slack@v3
-        with:
-          status: ${{ job.status }}
-          channel: "#alerts"
-          webhook_url: ${{ secrets.SLACK_WEBHOOK }}
-
-  # Отдельный job для деплоя (если нужно)
-  deploy-staging:
-    needs: build-and-push
-    if: success() && github.event.pull_request.merged == true
-    runs-on: ubuntu-latest
-    environment: staging
-
-    steps:
-      - name: Deploy to staging
-        uses: appleboy/ssh-action@v1.0.0
-        with:
-          host: ${{ secrets.STAGING_HOST }}
-          username: ${{ secrets.SERVER_USER }}
-          key: ${{ secrets.SERVER_SSH_KEY }}
-          script: |
-            docker login -u ${{ secrets.DOCKERHUB_USERNAME }} -p ${{ secrets.DOCKERHUB_TOKEN }}
-            docker pull ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:sha-${{ github.sha }}
-            docker-compose -f /app/docker-compose.yml up -d
-            docker image prune -f
-
   # Очистка старых образов из registry
   cleanup:
     needs: build-and-push
