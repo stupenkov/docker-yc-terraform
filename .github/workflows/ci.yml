@@ -1,4 +1,3 @@
-# .github/workflows/ci.yml
 name: CI - Build, Test, Scan
 
 on:
@@ -6,12 +5,7 @@ on:
     branches: [main]
   push:
     branches: [main]
-  workflow_dispatch:
-    inputs:
-      reason:
-        description: "Optional reason for manual run"
-        required: false
-        type: string
+
 jobs:
   pre-build-checks:
     runs-on: ubuntu-latest
@@ -70,15 +64,15 @@ jobs:
         with:
           dockerfile: Dockerfile
           failure-threshold: warning
+          verbose: true
 
-      - name: Build image (no push)
+      - name: Build image (no push, load into docker)
         uses: docker/build-push-action@v5
         with:
           context: .
           push: false
+          load: true
           tags: temp:latest
-          cache-from: type=local,src=/tmp/.buildx-cache
-          cache-to: type=local,dest=/tmp/.buildx-cache-new,mode=max
 
       - name: Scan image for vulnerabilities
         uses: aquasecurity/trivy-action@master
@@ -89,7 +83,7 @@ jobs:
           severity: HIGH,CRITICAL
 
       - name: Upload Trivy results to GitHub Code Scanning
-        uses: github/codeql-action/upload-sarif@v2
+        uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: trivy-results.sarif
         if: always()
