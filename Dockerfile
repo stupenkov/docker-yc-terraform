@@ -2,13 +2,13 @@ FROM alpine:3.22
 
 # Install essential utilities with pinned versions
 RUN apk add --no-cache \
-    curl \
-    jq \
-    bash \
-    git \
-    openssh-client \
-    gnupg \
-    unzip \
+    curl=8.14.1-r1 \
+    jq=1.8.0-r0 \
+    bash=5.2.37-r0 \
+    git=2.49.1-r0 \
+    openssh-client=10.0_p1-r7 \
+    gnupg=2.4.7-r0 \
+    unzip=6.0-r15 \
     && addgroup -g 1000 -S appgroup \
     && adduser -S appuser -u 1000 -G appgroup
 
