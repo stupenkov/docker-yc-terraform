@@ -13,11 +13,13 @@ RUN apk add --no-cache \
     && adduser -S appuser -u 1000 -G appgroup
 
 # Install Yandex Cloud CLI (yc) - corrected version
+SHELL ["/bin/ash", "-eo", "pipefail", "-c"]
 RUN curl -sSL https://storage.yandexcloud.net/yandexcloud-yc/install.sh | \
     bash -s -- -a && \
     mv /root/yandex-cloud/bin/yc /usr/local/bin/ && \
     rm -rf /root/yandex-cloud && \
     yc version
+SHELL ["/bin/sh", "-c"]
 
 # Install Terraform with pinned versions
 ENV TERRAFORM_VERSION=1.13.0
