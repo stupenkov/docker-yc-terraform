@@ -4,46 +4,12 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
-    inputs:
-      reason:
-        description: "Optional reason for manual run"
-        required: false
-        type: string
+
 env:
   IMAGE_NAME: yandex-terraform
-  REGISTRY: docker.io
 
 jobs:
-  determine-version:
-    runs-on: ubuntu-latest
-    outputs:
-      version: ${{ steps.gitversion.outputs.semver }}
-      is_release: "true"
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v3
-        with:
-          dotnet-version: "6.0.x"
-
-      - name: Install GitVersion
-        uses: gittools/actions/setup-gitversion@v0
-        with:
-          version-spec: "5.12.0"
-
-      - name: Run GitVersion
-        id: gitversion
-        uses: gittools/actions/execute-gitversion@v0
-        with:
-          use-legacy-semver: false
-
   build-and-push:
-    needs: determine-version
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
@@ -62,27 +28,24 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
+      - name: Extract Git tag
+        id: git-tag
+        run: |
+          # Get the latest tag or create a version based on commit
+          LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+          echo "tag=$LATEST_TAG" >> $GITHUB_OUTPUT
+          echo "version=${LATEST_TAG#v}" >> $GITHUB_OUTPUT
+
       - name: Extract metadata
         id: meta
         uses: docker/metadata-action@v5
         with:
           images: ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}
           tags: |
-            type=raw,value=${{ needs.determine-version.outputs.version }}
+            type=raw,value=${{ steps.git-tag.outputs.version }}
             type=raw,value=latest
             type=semver,pattern={{major}}.{{minor}}
             type=semver,pattern={{major}}
-          labels: |
-            org.opencontainers.image.version=${{ needs.determine-version.outputs.version }}
-            org.opencontainers.image.source=${{ github.repository }}
-
-      - name: Cache Docker layers
-        uses: actions/cache@v3
-        with:
-          path: /tmp/.buildx-cache
-          key: ${{ runner.os }}-buildx-${{ github.sha }}
-          restore-keys: |
-            ${{ runner.os }}-buildx-
 
       - name: Build and push
         uses: docker/build-push-action@v5
@@ -91,34 +54,31 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=local,src=/tmp/.buildx-cache
-          cache-to: type=local,dest=/tmp/.buildx-cache-new,mode=max
           platforms: linux/amd64,linux/arm64
-          build-args: BUILDKIT_INLINE_CACHE=1
 
       - name: Generate SBOM
         uses: anchore/sbom-action@v0
         with:
-          image: ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:${{ needs.determine-version.outputs.version }}
-          output: ${{ env.IMAGE_NAME }}-${{ needs.determine-version.outputs.version }}.spdx.json
+          image: ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:${{ steps.git-tag.outputs.version }}
+          output: ${{ env.IMAGE_NAME }}-${{ steps.git-tag.outputs.version }}.spdx.json
           output-format: spdx-json
 
       - name: Upload SBOM as artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
-          name: sbom-${{ needs.determine-version.outputs.version }}
-          path: ${{ env.IMAGE_NAME }}-${{ needs.determine-version.outputs.version }}.spdx.json
+          name: sbom-${{ steps.git-tag.outputs.version }}
+          path: ${{ env.IMAGE_NAME }}-${{ steps.git-tag.outputs.version }}.spdx.json
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.ref }}
-          name: Release ${{ needs.determine-version.outputs.version }}
+          tag_name: ${{ steps.git-tag.outputs.tag }}
+          name: Release ${{ steps.git-tag.outputs.version }}
           body: |
             Published Docker image:
-            `${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:${{ needs.determine-version.outputs.version }}`
+            `${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:${{ steps.git-tag.outputs.version }}`
 
             Includes SBOM (SPDX) attached.
-          files: ${{ env.IMAGE_NAME }}-${{ needs.determine-version.outputs.version }}.spdx.json
+          files: ${{ env.IMAGE_NAME }}-${{ steps.git-tag.outputs.version }}.spdx.json
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
