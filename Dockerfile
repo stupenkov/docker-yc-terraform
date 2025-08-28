@@ -1,14 +1,14 @@
 FROM alpine:3.22
 
-# Install essential utilities
+# Install essential utilities with pinned versions
 RUN apk add --no-cache \
-    curl \
-    jq \
-    bash \
-    git \
-    openssh-client \
-    gnupg \
-    unzip \
+    curl=7.88.1-r0 \
+    jq=1.6-r2 \
+    bash=5.2.15-r0 \
+    git=2.39.3-r0 \
+    openssh-client=9.3_p2-r0 \
+    gnupg=2.2.40-r0 \
+    unzip=6.0-r12 \
     && addgroup -g 1000 -S appgroup \
     && adduser -S appuser -u 1000 -G appgroup
 
@@ -19,16 +19,16 @@ RUN curl -sSL https://storage.yandexcloud.net/yandexcloud-yc/install.sh | \
     rm -rf /root/yandex-cloud && \
     yc version
 
-# Install Terraform
+# Install Terraform with pinned versions
 ENV TERRAFORM_VERSION=1.13.0
 ENV TERRAFORM_MIRROR=https://hashicorp-releases.yandexcloud.net/terraform
 
-RUN curl -LO ${TERRAFORM_MIRROR}/${TERRAFORM_VERSION}/terraform_${TERRAFORM_VERSION}_linux_amd64.zip \
-    && unzip terraform_${TERRAFORM_VERSION}_linux_amd64.zip \
-    && mv terraform /usr/local/bin/ \
-    && rm terraform_${TERRAFORM_VERSION}_linux_amd64.zip \
-    && chmod +x /usr/local/bin/terraform \
-    && terraform version
+RUN curl -LO ${TERRAFORM_MIRROR}/${TERRAFORM_VERSION}/terraform_${TERRAFORM_VERSION}_linux_amd64.zip && \
+    unzip terraform_${TERRAFORM_VERSION}_linux_amd64.zip && \
+    mv terraform /usr/local/bin/ && \
+    rm terraform_${TERRAFORM_VERSION}_linux_amd64.zip && \
+    chmod +x /usr/local/bin/terraform && \
+    terraform version
 
 # Create working directory and set permissions
 WORKDIR /app
@@ -57,9 +57,9 @@ ENV YC_ZONE="ru-central1-a"
 # Switch to non-root user
 USER appuser
 
-# Health check
+# Health check using local command instead of external service
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD curl -f https://storage.yandexcloud.net/ || exit 1
+    CMD yc --version || exit 1
 
 # Entry point
 ENTRYPOINT ["/home/appuser/entrypoint.sh"]
