@@ -66,19 +66,18 @@ jobs:
           failure-threshold: warning
           verbose: true
 
-      - name: Build image (no push)
+      - name: Build image (no push, load into docker)
         uses: docker/build-push-action@v5
         with:
           context: .
           push: false
+          load: true
           tags: temp:latest
-          cache-from: type=local,src=/tmp/.buildx-cache
-          cache-to: type=local,dest=/tmp/.buildx-cache-new,mode=max
 
       - name: Scan image for vulnerabilities
         uses: aquasecurity/trivy-action@master
         with:
-          input: /tmp/image.tar
+          image-ref: temp:latest
           format: sarif
           output: trivy-results.sarif
           severity: HIGH,CRITICAL
