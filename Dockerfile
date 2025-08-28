@@ -2,6 +2,7 @@ FROM alpine:3.22
 
 # Install essential utilities with pinned versions
 RUN apk add --no-cache \
+    ca-certificates=20250619-r0 \
     curl=8.14.1-r1 \
     jq=1.8.0-r0 \
     bash=5.2.37-r0 \
@@ -12,7 +13,7 @@ RUN apk add --no-cache \
     && addgroup -g 1000 -S appgroup \
     && adduser -S appuser -u 1000 -G appgroup
 
-# Install Yandex Cloud CLI (yc) - corrected version
+# Install Yandex Cloud CLI (yc)
 SHELL ["/bin/ash", "-eo", "pipefail", "-c"]
 RUN curl -sSL https://storage.yandexcloud.net/yandexcloud-yc/install.sh | \
     bash -s -- -a && \
@@ -21,12 +22,9 @@ RUN curl -sSL https://storage.yandexcloud.net/yandexcloud-yc/install.sh | \
     yc version
 SHELL ["/bin/sh", "-c"]
 
-# Install Terraform with pinned versions
+# Install Terraform with pinned version
 ENV TERRAFORM_VERSION=1.13.0
-ENV TERRAFORM_MIRROR=https://hashicorp-releases.yandexcloud.net/terraform
-
-RUN (curl -fLO https://releases.hashicorp.com/terraform/${TERRAFORM_VERSION}/terraform_${TERRAFORM_VERSION}_linux_amd64.zip || \
-    curl -fLO ${TERRAFORM_MIRROR}/${TERRAFORM_VERSION}/terraform_${TERRAFORM_VERSION}_linux_amd64.zip) && \
+RUN curl -fLO https://releases.hashicorp.com/terraform/${TERRAFORM_VERSION}/terraform_${TERRAFORM_VERSION}_linux_amd64.zip && \
     unzip terraform_${TERRAFORM_VERSION}_linux_amd64.zip && \
     mv terraform /usr/local/bin/ && \
     rm terraform_${TERRAFORM_VERSION}_linux_amd64.zip && \
