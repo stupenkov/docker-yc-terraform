@@ -3,6 +3,7 @@ FROM hashicorp/terraform:1.13.0
 # Install essential utilities with pinned versions
 RUN apk add --no-cache \
     ca-certificates=20250619-r0 \
+    ca-certificates=20250619-r0 \
     curl=8.14.1-r1 \
     jq=1.8.0-r0 \
     bash=5.2.37-r0 \
@@ -13,6 +14,7 @@ RUN apk add --no-cache \
     && addgroup -g 1000 -S appgroup \
     && adduser -S appuser -u 1000 -G appgroup
 
+# Install Yandex Cloud CLI (yc)
 # Install Yandex Cloud CLI (yc)
 SHELL ["/bin/ash", "-eo", "pipefail", "-c"]
 RUN curl -sSL https://storage.yandexcloud.net/yandexcloud-yc/install.sh | \
