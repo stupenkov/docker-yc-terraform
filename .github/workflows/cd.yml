@@ -82,3 +82,16 @@ jobs:
           files: ${{ env.IMAGE_NAME }}-${{ steps.git-tag.outputs.version }}.spdx.json
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update Docker Hub Description
+        run: |
+          curl -X PATCH https://hub.docker.com/v2/repositories/${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}/ \
+               -H "Authorization: Bearer ${{ secrets.DOCKERHUB_TOKEN }}" \
+               -H "Content-Type: application/json" \
+               -d '{
+                     "description": "Docker container for Yandex Cloud infrastructure management with Terraform",
+                     "full_description": "$(cat README.md | sed 's/\"/\\\"/g')",
+                     "category": "infrastructure"
+                   }'
+        env:
+          DOCKERHUB_API_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
