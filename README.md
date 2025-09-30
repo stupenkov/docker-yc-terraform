@@ -1,5 +1,11 @@
 # Yandex Cloud Terraform Docker Container
 
+![Docker Pulls](https://img.shields.io/docker/pulls/stupean/yandex-terraform)
+![Docker Image Size](https://img.shields.io/docker/image-size/stupean/yandex-terraform)
+![License](https://img.shields.io/github/license/stupenkov/docker-yc-terraform)
+
+**Docker container for Yandex Cloud infrastructure management with Terraform**
+
 ## Overview
 
 This Docker container provides a ready-to-use environment for working with Yandex Cloud infrastructure using Terraform. It includes:

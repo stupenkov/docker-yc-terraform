@@ -1,5 +1,15 @@
 FROM hashicorp/terraform:1.13.0
 
+# Labels for Docker Hub metadata
+LABEL org.opencontainers.image.title="Yandex Cloud Terraform"
+LABEL org.opencontainers.image.description="Docker container for Yandex Cloud infrastructure management with Terraform"
+LABEL org.opencontainers.image.vendor="Stas Upenkov"
+LABEL org.opencontainers.image.url="https://github.com/stupenkov/docker-yc-terraform"
+LABEL org.opencontainers.image.source="https://github.com/stupenkov/docker-yc-terraform"
+LABEL org.opencontainers.image.documentation="https://github.com/stupenkov/docker-yc-terraform/blob/main/README.md"
+LABEL org.opencontainers.image.version="1.13.0"
+LABEL org.opencontainers.image.licenses="MIT"
+
 # Install essential utilities with pinned versions
 RUN apk add --no-cache \
     ca-certificates=20250619-r0 \
