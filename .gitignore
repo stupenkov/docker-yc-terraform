@@ -1,1 +1,51 @@
 .aider*
+# Build and output directories
+.out/
+.state/
+
+# IDE and editor files
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# Terraform files
+*.tfstate
+*.tfstate.backup
+.terraform/
+terraform.tfvars
+.terraform.tfvars
+
+# Yandex Cloud CLI
+.yc/
+
+# Trunk configuration
+.trunk/
+
+# Docker build files
+.dockerignore
+
+# Version control
+.git/
+
+# Temporary files
+*~
+*.tmp
+temp/
+build/
+
+# Logs
+*.log
+logs/
+
+# Environment variables
+.env
+.env.local
+.env.development
+.env.production
+.env.staging
+
+# Package manager files
+node_modules/
+bower_components/
+vendor/
