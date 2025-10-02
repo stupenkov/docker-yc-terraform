@@ -1,4 +1,3 @@
-# trunk-ignore-all(checkov/CKV_DOCKER_2)
 FROM hashicorp/terraform:1.13.0
 
 # Labels for Docker Hub metadata
@@ -12,11 +11,9 @@ LABEL org.opencontainers.image.version="1.13.0"
 LABEL org.opencontainers.image.licenses="MIT"
 
 # Install essential utilities with pinned versions
-# trunk-ignore(hadolint/DL3018)
 RUN apk add --no-cache \
-    ca-certificates \
-    curl \
-    bash \
+    curl=8.14.1-r2 \
+    bash=5.2.37-r0 \
     && addgroup -g 1000 -S appgroup \
     && adduser -S appuser -u 1000 -G appgroup
 
