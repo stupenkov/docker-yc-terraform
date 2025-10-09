@@ -13,8 +13,7 @@
 This Docker container provides a ready-to-use environment for working with Yandex Cloud infrastructure using Terraform. It includes:
 - Yandex Cloud CLI (`yc`)
 - Terraform with Yandex Cloud provider
-- Pre-configured Terraform templates
-- Essential tools (curl, jq, git, SSH, etc.)
+- Pre-configured Terraform provider mirror for Yandex Cloud
 
 ## Prerequisites
 
@@ -114,51 +113,27 @@ docker run -it --rm \
   yandex-terraform yc compute instance list
 ```
 
-## Default Terraform Configuration
+## Configuration
 
-The container includes a default Terraform configuration:
+### Terraform Provider Mirror
 
-**main.tf**:
+The container is pre-configured to use Yandex Cloud's Terraform provider mirror through `/etc/terraformrc`:
+
 ```hcl
-terraform {
-  required_providers {
-    yandex = {
-      source = "yandex-cloud/yandex"
-    }
+provider_installation {
+  network_mirror {
+    url     = "https://terraform-mirror.yandexcloud.net/"
+    include = ["registry.terraform.io/*/*"]
   }
-  required_version = ">= 0.13"
-}
-
-provider "yandex" {
-  token = var.yc_token
-  zone  = "ru-central1-a"
+  direct {
+    exclude = ["registry.terraform.io/*/*"]
+  }
 }
 ```
 
-**variables.tf**:
-```hcl
-variable "yc_token" {
-  description = "Yandex Cloud OAuth token"
-  type        = string
-  sensitive   = true
-}
+### Security Configuration
 
-variable "cloud_id" {
-  description = "Yandex Cloud ID"
-  type        = string
-}
-
-variable "folder_id" {
-  description = "Yandex Cloud Folder ID"
-  type        = string
-}
-
-variable "zone" {
-  description = "Yandex Cloud default zone"
-  type        = string
-  default     = "ru-central1-a"
-}
-```
+The container runs with a non-root user (appuser) for improved security. The entrypoint script validates the YC_TOKEN environment variable and automatically configures the Yandex Cloud CLI.
 
 ## Environment Variables
 
