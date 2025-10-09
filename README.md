@@ -6,6 +6,8 @@
 
 **Docker container for Yandex Cloud infrastructure management with Terraform**
 
+[GitHub Repository](https://github.com/stupenkov/docker-yc-terraform)
+
 ## Overview
 
 This Docker container provides a ready-to-use environment for working with Yandex Cloud infrastructure using Terraform. It includes:
@@ -54,7 +56,7 @@ docker run -it --rm \
   -e YC_CLOUD_ID=your_cloud_id_here \
   -e YC_FOLDER_ID=your_folder_id_here \
   -v $(pwd):/app \
-  yandex-terraform terraform [command]
+  yandex-terraform [command]
 ```
 
 #### Example commands:
@@ -66,7 +68,7 @@ docker run -it --rm \
   -e YC_CLOUD_ID=your_cloud_id \
   -e YC_FOLDER_ID=your_folder_id \
   -v $(pwd):/app \
-  yandex-terraform terraform init
+  yandex-terraform init
 
 # Plan infrastructure changes
 docker run -it --rm \
@@ -74,7 +76,7 @@ docker run -it --rm \
   -e YC_CLOUD_ID=your_cloud_id \
   -e YC_FOLDER_ID=your_folder_id \
   -v $(pwd):/app \
-  yandex-terraform terraform plan
+  yandex-terraform plan
 
 # Apply changes
 docker run -it --rm \
@@ -82,7 +84,7 @@ docker run -it --rm \
   -e YC_CLOUD_ID=your_cloud_id \
   -e YC_FOLDER_ID=your_folder_id \
   -v $(pwd):/app \
-  yandex-terraform terraform apply
+  yandex-terraform apply
 
 # Destroy infrastructure
 docker run -it --rm \
@@ -90,7 +92,7 @@ docker run -it --rm \
   -e YC_CLOUD_ID=your_cloud_id \
   -e YC_FOLDER_ID=your_folder_id \
   -v $(pwd):/app \
-  yandex-terraform terraform destroy
+  yandex-terraform destroy
 ```
 
 ### 5. Using Yandex Cloud CLI (yc)
@@ -163,8 +165,8 @@ variable "zone" {
 | Variable       | Description                           | Required             |
 | -------------- | ------------------------------------- | -------------------- |
 | `YC_TOKEN`     | Yandex Cloud OAuth token              | Yes                  |
-| `YC_CLOUD_ID`  | Yandex Cloud ID                       | No (but recommended) |
-| `YC_FOLDER_ID` | Yandex Cloud Folder ID                | No (but recommended) |
+| `YC_CLOUD_ID`  | Yandex Cloud ID                       | No                   |
+| `YC_FOLDER_ID` | Yandex Cloud Folder ID                | No                   |
 | `YC_ZONE`      | Default zone (default: ru-central1-a) | No                   |
 
 ## Volume Mounting
@@ -204,7 +206,7 @@ Run container with debug output:
 docker run -it --rm \
   -e YC_TOKEN=your_token \
   -v $(pwd):/app \
-  yandex-terraform terraform plan -verbose
+  yandex-terraform plan -verbose
 ```
 
 ## Advanced Usage
@@ -219,7 +221,7 @@ alias yterraform='docker run -it --rm -e YC_TOKEN=$YC_TOKEN -e YC_CLOUD_ID=$YC_C
 
 Then use:
 ```bash
-yterraform terraform plan
+yterraform plan
 ```
 
 ### Using Docker Compose
@@ -242,7 +244,7 @@ services:
 
 Use with:
 ```bash
-docker-compose run --rm yc-terraform terraform plan
+docker-compose run --rm yc-terraform plan
 ```
 
 ## Support
