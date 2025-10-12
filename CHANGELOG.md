@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.2](https://github.com/stupenkov/docker-yc-terraform/compare/v0.3.1...v0.3.2) (2025-10-12)
+
+
+### Bug Fixes
+
+* rename docker-scan job to trivy ([#55](https://github.com/stupenkov/docker-yc-terraform/issues/55)) ([503a347](https://github.com/stupenkov/docker-yc-terraform/commit/503a3470c731c4fb11394452f38b30cf79ed7506))
+
 ## [0.3.1](https://github.com/stupenkov/docker-yc-terraform/compare/v0.3.0...v0.3.1) (2025-10-12)
 
 
