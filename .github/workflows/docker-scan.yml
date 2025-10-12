@@ -16,12 +16,12 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Build Docker image
-        run: docker build -t yandex-terraform:latest .
+        run: docker build -t stupean/yandex-terraform:${{ github.sha }} .
 
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@0.33.1
         with:
-          image-ref: "docker.io/my-organization/my-app:${{ github.sha }}"
+          image-ref: "stupean/yandex-terraform:${{ github.sha }}"
           format: "template"
           template: "@/contrib/sarif.tpl"
           output: "trivy-results.sarif"
