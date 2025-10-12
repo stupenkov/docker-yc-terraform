@@ -10,10 +10,7 @@
 
 ## Overview
 
-This Docker container provides a ready-to-use environment for working with Yandex Cloud infrastructure using Terraform. It includes:
-- Yandex Cloud CLI (`yc`)
-- Terraform with Yandex Cloud provider
-- Pre-configured Terraform provider mirror for Yandex Cloud
+This Docker container provides a ready-to-use environment for working with Yandex Cloud infrastructure using Terraform.
 
 ## Prerequisites
 
@@ -40,10 +37,12 @@ cd my-terraform-project
 
 ### 3. Obtain Yandex Cloud Credentials
 
-Get your credentials from Yandex Cloud Console:
-- **YC_TOKEN**: [OAuth token](https://yandex.cloud/en/docs/iam/concepts/authorization/oauth-token)
-- **YC_CLOUD_ID**: Cloud ID
-- **YC_FOLDER_ID**: Folder ID
+| Variable       | Description                                                                                     | Required |
+| -------------- | ----------------------------------------------------------------------------------------------- | -------- |
+| `YC_TOKEN`     | [Yandex Cloud OAuth token](https://yandex.cloud/en/docs/iam/concepts/authorization/oauth-token) | Yes      |
+| `YC_CLOUD_ID`  | Yandex Cloud ID                                                                                 | No       |
+| `YC_FOLDER_ID` | Yandex Cloud Folder ID                                                                          | No       |
+| `YC_ZONE`      | Default zone (default: ru-central1-a)                                                           | No       |
 
 ### 4. Basic Usage
 
@@ -94,56 +93,6 @@ docker run -it --rm \
   yandex-terraform destroy
 ```
 
-### 5. Using Yandex Cloud CLI (yc)
-
-```bash
-# Check yc version
-docker run -it --rm yandex-terraform yc version
-
-# List available clouds
-docker run -it --rm \
-  -e YC_TOKEN=your_token \
-  yandex-terraform yc resource-manager cloud list
-
-# List compute instances
-docker run -it --rm \
-  -e YC_TOKEN=your_token \
-  -e YC_CLOUD_ID=your_cloud_id \
-  -e YC_FOLDER_ID=your_folder_id \
-  yandex-terraform yc compute instance list
-```
-
-## Configuration
-
-### Terraform Provider Mirror
-
-The container is pre-configured to use Yandex Cloud's Terraform provider mirror through `/etc/terraformrc`:
-
-```hcl
-provider_installation {
-  network_mirror {
-    url     = "https://terraform-mirror.yandexcloud.net/"
-    include = ["registry.terraform.io/*/*"]
-  }
-  direct {
-    exclude = ["registry.terraform.io/*/*"]
-  }
-}
-```
-
-### Security Configuration
-
-The container runs with a non-root user (appuser) for improved security. The entrypoint script validates the YC_TOKEN environment variable and automatically configures the Yandex Cloud CLI.
-
-## Environment Variables
-
-| Variable       | Description                           | Required             |
-| -------------- | ------------------------------------- | -------------------- |
-| `YC_TOKEN`     | Yandex Cloud OAuth token              | Yes                  |
-| `YC_CLOUD_ID`  | Yandex Cloud ID                       | No                   |
-| `YC_FOLDER_ID` | Yandex Cloud Folder ID                | No                   |
-| `YC_ZONE`      | Default zone (default: ru-central1-a) | No                   |
-
 ## Volume Mounting
 
 Mount your local directory to `/app` in the container to persist Terraform state and configuration:
@@ -151,19 +100,6 @@ Mount your local directory to `/app` in the container to persist Terraform state
 ```bash
 -v $(pwd):/app
 ```
-
-## Security Best Practices
-
-1. **Never hardcode credentials** in Dockerfiles or source code
-2. **Use environment variables** for sensitive data
-3. **Use .gitignore** to exclude sensitive files:
-   ```
-   *.tfstate
-   *.tfstate.backup
-   .terraform/
-   terraform.tfvars
-   .env
-   ```
 
 ## Troubleshooting
 
@@ -195,6 +131,7 @@ alias yterraform='docker run -it --rm -e YC_TOKEN=$YC_TOKEN -e YC_CLOUD_ID=$YC_C
 ```
 
 Then use:
+
 ```bash
 yterraform plan
 ```
@@ -204,7 +141,7 @@ yterraform plan
 Create `docker-compose.yml`:
 
 ```yaml
-version: '3.8'
+version: "3.8"
 services:
   yc-terraform:
     image: yandex-terraform
@@ -218,6 +155,7 @@ services:
 ```
 
 Use with:
+
 ```bash
 docker-compose run --rm yc-terraform plan
 ```
@@ -225,6 +163,7 @@ docker-compose run --rm yc-terraform plan
 ## Support
 
 For Yandex Cloud specific issues, refer to:
+
 - [Yandex Cloud Documentation](https://cloud.yandex.com/docs)
 - [Terraform Yandex Cloud Provider](https://registry.terraform.io/providers/yandex-cloud/yandex/latest/docs)
 
