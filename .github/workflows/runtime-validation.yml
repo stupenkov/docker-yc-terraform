@@ -15,14 +15,14 @@ jobs:
 
       - name: Build Docker image
         run: |
-          IMAGE_TAG=yandex-terraform:${GITHUB_SHA::8}
+          IMAGE_TAG=yandex-terraform:${{ github.sha }}
           echo "Building image with tag $IMAGE_TAG"
           docker build -t $IMAGE_TAG .
 
       - name: Run version command and validate error
         id: version_check
         run: |
-          IMAGE_TAG=yandex-terraform:${GITHUB_SHA::8}
+          IMAGE_TAG=yandex-terraform:${{ github.sha }}
           output=$(docker run --rm $IMAGE_TAG version 2>&1)
           echo "Command output: $output"
           echo "Checking for expected error message..."
