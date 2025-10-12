@@ -1,8 +1,12 @@
 name: Publish Docker Image
 
 on:
+  workflow_dispatch:
+  repository_dispatch:
   release:
     types: [published]
+  push:
+    tags: ["**"]
 
 permissions:
   contents: read
