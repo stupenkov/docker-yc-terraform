@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.7](https://github.com/stupenkov/docker-yc-terraform/compare/v0.4.6...v0.4.7) (2025-10-12)
+
+
+### Bug Fixes
+
+* simplify publish.yml triggers ([#73](https://github.com/stupenkov/docker-yc-terraform/issues/73)) ([581c923](https://github.com/stupenkov/docker-yc-terraform/commit/581c92338888399c8f3cfd4e53197d0d79973d95))
+
 ## [0.4.6](https://github.com/stupenkov/docker-yc-terraform/compare/v0.4.5...v0.4.6) (2025-10-12)
 
 
