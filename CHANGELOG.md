@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.4](https://github.com/stupenkov/docker-yc-terraform/compare/v0.4.3...v0.4.4) (2025-10-12)
+
+
+### Bug Fixes
+
+* test publish ([#67](https://github.com/stupenkov/docker-yc-terraform/issues/67)) ([4784ab3](https://github.com/stupenkov/docker-yc-terraform/commit/4784ab3f700776d61348668366737db08139379c))
+
 ## [0.4.3](https://github.com/stupenkov/docker-yc-terraform/compare/v0.4.2...v0.4.3) (2025-10-12)
 
 
