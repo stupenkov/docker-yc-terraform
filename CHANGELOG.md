@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.2](https://github.com/stupenkov/docker-yc-terraform/compare/v0.2.1...v0.2.2) (2025-10-12)
+
+
+### Bug Fixes
+
+* **workflow:** allow publish on any tag ([#46](https://github.com/stupenkov/docker-yc-terraform/issues/46)) ([5a180d1](https://github.com/stupenkov/docker-yc-terraform/commit/5a180d118ff0810a25de078d4fe1068e2e3734ed))
+
 ## [0.2.1](https://github.com/stupenkov/docker-yc-terraform/compare/v0.2.0...v0.2.1) (2025-10-12)
 
 
