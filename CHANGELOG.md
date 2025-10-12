@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.0](https://github.com/stupenkov/docker-yc-terraform/compare/v0.2.3...v0.3.0) (2025-10-12)
+
+
+### Features
+
+* split Docker CI into lint & scan workflows ([#50](https://github.com/stupenkov/docker-yc-terraform/issues/50)) ([5441d30](https://github.com/stupenkov/docker-yc-terraform/commit/5441d308dedb9028f28bb6efb3545d0ed5630650))
+
 ## [0.2.3](https://github.com/stupenkov/docker-yc-terraform/compare/v0.2.2...v0.2.3) (2025-10-12)
 
 
