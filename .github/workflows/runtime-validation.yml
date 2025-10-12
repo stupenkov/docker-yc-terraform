@@ -1,0 +1,35 @@
+name: Runtime Validation
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  validate-runtime:
+    name: Validate container runtime behavior
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: |
+          IMAGE_TAG=yandex-terraform:${GITHUB_SHA::8}
+          echo "Building image with tag $IMAGE_TAG"
+          docker build -t $IMAGE_TAG .
+
+      - name: Run version command and validate error
+        id: version_check
+        run: |
+          IMAGE_TAG=yandex-terraform:${GITHUB_SHA::8}
+          output=$(docker run --rm $IMAGE_TAG version 2>&1)
+          echo "Command output: $output"
+          echo "Checking for expected error message..."
+          if echo "$output" | grep -q "Error: YC_TOKEN must be set"; then
+            echo "✅ Expected error message found"
+            exit 0
+          else
+            echo "❌ Expected error message not found"
+            exit 1
+          fi
