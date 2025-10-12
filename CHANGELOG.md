@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.4.0](https://github.com/stupenkov/docker-yc-terraform/compare/v0.3.2...v0.4.0) (2025-10-12)
+
+
+### Features
+
+* add step to print latest tag to console ([#57](https://github.com/stupenkov/docker-yc-terraform/issues/57)) ([a279108](https://github.com/stupenkov/docker-yc-terraform/commit/a279108669e69316b78ae8ffc7d74d9a23001a6f))
+
+
+### Bug Fixes
+
+* skip release-please, publish on tags ([#59](https://github.com/stupenkov/docker-yc-terraform/issues/59)) ([72eb819](https://github.com/stupenkov/docker-yc-terraform/commit/72eb8197fab141d9e7bcddc4dd469998410f58b6))
+
 ## [0.3.2](https://github.com/stupenkov/docker-yc-terraform/compare/v0.3.1...v0.3.2) (2025-10-12)
 
 
