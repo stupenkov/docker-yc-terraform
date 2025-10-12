@@ -16,6 +16,12 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Get Latest Tag
+        id: get_tag
+        run: |
+          LATEST_TAG=$(git describe --tags --abbrev=0)
+          echo "tag=$LATEST_TAG" >> $GITHUB_OUTPUT
+
       - name: Log in to Docker Hub
         uses: docker/login-action@v3
         with:
@@ -28,4 +34,4 @@ jobs:
           push: true
           tags: |
             stupean/yandex-terraform:latest
-            stupean/yandex-terraform:${{ github.ref_name }}
+            stupean/yandex-terraform:${{ steps.get_tag.outputs.tag }}
