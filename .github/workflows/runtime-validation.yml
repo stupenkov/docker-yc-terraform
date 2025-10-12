@@ -23,13 +23,6 @@ jobs:
         id: version_check
         run: |
           IMAGE_TAG=yandex-terraform:${{ github.sha }}
-          output=$(docker run --rm $IMAGE_TAG version 2>&1)
-          echo "Command output: $output"
-          echo "Checking for expected error message..."
-          if echo "$output" | grep -q "Error: YC_TOKEN must be set"; then
-            echo "✅ Expected error message found"
-            exit 0
-          else
-            echo "❌ Expected error message not found"
-            exit 1
-          fi
+          echo "📦 Using image tag: $IMAGE_TAG"
+          chmod +x tests/validate-yc-token.sh
+          ./tests/validate-yc-token.sh $IMAGE_TAG
