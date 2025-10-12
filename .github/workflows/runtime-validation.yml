@@ -1,0 +1,31 @@
+name: Runtime Validation
+
+on:
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  validate-runtime:
+    name: Validate container runtime behavior
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: |
+          IMAGE_TAG=yandex-terraform:${{ github.sha }}
+          echo "Building image with tag $IMAGE_TAG"
+          docker build -t $IMAGE_TAG .
+
+      - name: Run version command and validate error
+        id: version_check
+        run: |
+          IMAGE_TAG=yandex-terraform:${{ github.sha }}
+          echo "📦 Using image tag: $IMAGE_TAG"
+          chmod +x tests/validate-yc-token.sh
+          ./tests/validate-yc-token.sh $IMAGE_TAG
