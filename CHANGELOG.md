@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.3](https://github.com/stupenkov/docker-yc-terraform/compare/v0.2.2...v0.2.3) (2025-10-12)
+
+
+### Bug Fixes
+
+* rename publish workflow and update tag filter ([#48](https://github.com/stupenkov/docker-yc-terraform/issues/48)) ([82dcc0f](https://github.com/stupenkov/docker-yc-terraform/commit/82dcc0f2d8f23b6f8b6aa6d6df3f91655bbd9bcd))
+
 ## [0.2.2](https://github.com/stupenkov/docker-yc-terraform/compare/v0.2.1...v0.2.2) (2025-10-12)
 
 
