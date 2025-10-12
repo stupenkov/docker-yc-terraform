@@ -1,10 +1,7 @@
-name: cicd
+name: CI Release
 
 on:
   push:
-    branches:
-      - main
-  pull_request:
     branches:
       - main
 
@@ -14,41 +11,8 @@ permissions:
   pull-requests: write
 
 jobs:
-  lint-docker:
-    name: Lint Dockerfile
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Lint Dockerfile
-        uses: hadolint/hadolint-action@v3.1.0
-        with:
-          dockerfile: Dockerfile
-          failure-threshold: warning
-
-  scan-docker:
-    name: Scan Docker Image
-    runs-on: ubuntu-latest
-    needs: lint-docker
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Build Docker image
-        run: docker build -t yandex-terraform:latest .
-
-      - name: Scan with Trivy
-        uses: aquasecurity/trivy-action@0.33.1
-        with:
-          scan-type: image
-          image-ref: yandex-terraform:latest
-          severity: CRITICAL,HIGH,MEDIUM
-          ignore-unfixed: false
-
   release-please:
-    name: Release Please
     runs-on: ubuntu-latest
-    needs: scan-docker
-    if: github.event_name == 'push'
     steps:
       - uses: actions/checkout@v4
       - uses: googleapis/release-please-action@v4
@@ -57,24 +21,19 @@ jobs:
           release-type: simple
 
   publish-docker:
-    name: Publish Docker Image
     runs-on: ubuntu-latest
     needs: release-please
-    if: github.event_name == 'push'
     steps:
       - uses: actions/checkout@v4
-
       - name: Log in to Docker Hub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-
       - name: Get release tag
         id: get_tag
         run: |
           echo "RELEASE_TAG=$(git describe --tags --abbrev=0)" >> $GITHUB_ENV
-
       - name: Build and Push Docker image
         uses: docker/build-push-action@v6
         with:
