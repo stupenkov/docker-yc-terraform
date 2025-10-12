@@ -1,8 +1,6 @@
 name: Trivy
 
 on:
-  workflow_dispatch:
-  repository_dispatch:
   pull_request:
     branches:
       - main
