@@ -24,6 +24,10 @@ jobs:
           LATEST_TAG=$(git describe --tags --abbrev=0)
           echo "tag=$LATEST_TAG" >> $GITHUB_OUTPUT
 
+      - name: Print Tag to Console
+        run: |
+          echo "Latest tag: ${{ steps.get_tag.outputs.tag }}"
+
       - name: Log in to Docker Hub
         uses: docker/login-action@v3
         with:
