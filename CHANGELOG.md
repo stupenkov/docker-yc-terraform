@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.6](https://github.com/stupenkov/docker-yc-terraform/compare/v0.4.5...v0.4.6) (2025-10-12)
+
+
+### Bug Fixes
+
+* update release token secret ([#71](https://github.com/stupenkov/docker-yc-terraform/issues/71)) ([11d5dae](https://github.com/stupenkov/docker-yc-terraform/commit/11d5dae252ca1bfa94b31671593c8854399a6792))
+
 ## [0.4.5](https://github.com/stupenkov/docker-yc-terraform/compare/v0.4.4...v0.4.5) (2025-10-12)
 
 
