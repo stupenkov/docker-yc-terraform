@@ -12,11 +12,15 @@ echo "🔍 Starting version command validation..."
 echo "📦 Using image tag: $IMAGE_TAG"
 echo "🚀 Running command: docker run --rm $IMAGE_TAG version"
 
-output=$(timeout 10 docker run --rm "$IMAGE_TAG" version 2>&1)
-echo "📥 Raw command output: $output"
+output=$(docker run --rm "$IMAGE_TAG" version 2>&1 || true)
 
-echo "🔍 Checking for expected error message: 'Error: YC_TOKEN must be set'"
-if echo "$output" | grep -q "Error: YC_TOKEN must be set"; then
+echo "📥 Raw output:"
+echo "$output"
+
+expected_msg="Error: YC_TOKEN must be set"
+echo "🔍 Checking for expected error message: '$expected_msg'"
+
+if echo "$output" | grep -q "$expected_msg"; then
     echo "✅ Expected error message found"
     exit 0
 else
