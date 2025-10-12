@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.1](https://github.com/stupenkov/docker-yc-terraform/compare/v0.3.0...v0.3.1) (2025-10-12)
+
+
+### Bug Fixes
+
+* quote tag pattern in publish workflow ([#52](https://github.com/stupenkov/docker-yc-terraform/issues/52)) ([3c5f68c](https://github.com/stupenkov/docker-yc-terraform/commit/3c5f68c3452db1c4acd0a74b2309647433a31c61))
+
 ## [0.3.0](https://github.com/stupenkov/docker-yc-terraform/compare/v0.2.3...v0.3.0) (2025-10-12)
 
 
