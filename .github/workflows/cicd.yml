@@ -37,7 +37,7 @@ jobs:
         run: docker build -t yandex-terraform:latest .
 
       - name: Scan with Trivy
-        uses: aquasecurity/trivy-action@v0.33.1
+        uses: aquasecurity/trivy-action@0.33.1
         with:
           scan-type: image
           image-ref: yandex-terraform:latest
