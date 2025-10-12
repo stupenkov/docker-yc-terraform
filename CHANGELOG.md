@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.1](https://github.com/stupenkov/docker-yc-terraform/compare/v0.2.0...v0.2.1) (2025-10-12)
+
+
+### Bug Fixes
+
+* **workflow:** change tag pattern to v* ([#44](https://github.com/stupenkov/docker-yc-terraform/issues/44)) ([0d11075](https://github.com/stupenkov/docker-yc-terraform/commit/0d1107552cd6b8a93b2dc11ef9487d425c71c732))
+
 ## [0.2.0](https://github.com/stupenkov/docker-yc-terraform/compare/v0.1.0...v0.2.0) (2025-10-12)
 
 
