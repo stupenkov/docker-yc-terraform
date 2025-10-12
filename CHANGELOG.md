@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.3](https://github.com/stupenkov/docker-yc-terraform/compare/v0.4.2...v0.4.3) (2025-10-12)
+
+
+### Bug Fixes
+
+* add manual triggers to docker linter & scan ([#65](https://github.com/stupenkov/docker-yc-terraform/issues/65)) ([032679a](https://github.com/stupenkov/docker-yc-terraform/commit/032679aa0f136663840e0bb72cf5766b851fd88b))
+
 ## [0.4.2](https://github.com/stupenkov/docker-yc-terraform/compare/v0.4.1...v0.4.2) (2025-10-12)
 
 
