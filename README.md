@@ -16,7 +16,7 @@ This Docker container provides a ready-to-use environment for working with Yande
 
 - Docker installed on your system
 - Yandex Cloud account with appropriate permissions
-- OAuth token for Yandex Cloud API access
+- [IAM token](https://yandex.cloud/en/docs/iam/concepts/authorization/iam-token) or [service account key](https://yandex.cloud/en/docs/iam/concepts/authorization/key) (OAuth tokens are no longer supported)
 
 ## Getting Started
 
@@ -37,12 +37,21 @@ cd my-terraform-project
 
 ### 3. Obtain Yandex Cloud Credentials
 
-| Variable       | Description                                                                                     | Required |
-| -------------- | ----------------------------------------------------------------------------------------------- | -------- |
-| `YC_TOKEN`     | [Yandex Cloud OAuth token](https://yandex.cloud/en/docs/iam/concepts/authorization/oauth-token) | Yes      |
-| `YC_CLOUD_ID`  | Yandex Cloud ID                                                                                 | No       |
-| `YC_FOLDER_ID` | Yandex Cloud Folder ID                                                                          | No       |
-| `YC_ZONE`      | Default zone (default: ru-central1-a)                                                           | No       |
+| Variable                      | Description                                                                                          | Required |
+| ----------------------------- | ---------------------------------------------------------------------------------------------------- | -------- |
+| `YC_TOKEN`                    | [IAM token](https://yandex.cloud/en/docs/iam/operations/iam-token/create) (`yc iam create-token`)   | Yes\*    |
+| `YC_SERVICE_ACCOUNT_KEY_FILE` | Path to [service account authorized key](https://yandex.cloud/en/docs/iam/operations/authorized-key/create) JSON | Yes\*    |
+| `YC_CLOUD_ID`                 | Yandex Cloud ID                                                                                      | No       |
+| `YC_FOLDER_ID`                | Yandex Cloud Folder ID                                                                               | No       |
+| `YC_ZONE`                     | Default zone (default: ru-central1-a)                                                                | No       |
+
+\*Provide either `YC_TOKEN` or `YC_SERVICE_ACCOUNT_KEY_FILE` (not both required). IAM tokens expire within ~12 hours.
+
+Get an IAM token:
+
+```bash
+export YC_TOKEN=$(yc iam create-token)
+```
 
 ### 4. Basic Usage
 
@@ -50,7 +59,7 @@ cd my-terraform-project
 
 ```bash
 docker run -it --rm \
-  -e YC_TOKEN=your_oauth_token_here \
+  -e YC_TOKEN="$(yc iam create-token)" \
   -e YC_CLOUD_ID=your_cloud_id_here \
   -e YC_FOLDER_ID=your_folder_id_here \
   -v $(pwd):/app \
@@ -62,7 +71,7 @@ docker run -it --rm \
 ```bash
 # Initialize Terraform
 docker run -it --rm \
-  -e YC_TOKEN=your_token \
+  -e YC_TOKEN="$(yc iam create-token)" \
   -e YC_CLOUD_ID=your_cloud_id \
   -e YC_FOLDER_ID=your_folder_id \
   -v $(pwd):/app \
@@ -70,7 +79,7 @@ docker run -it --rm \
 
 # Plan infrastructure changes
 docker run -it --rm \
-  -e YC_TOKEN=your_token \
+  -e YC_TOKEN="$(yc iam create-token)" \
   -e YC_CLOUD_ID=your_cloud_id \
   -e YC_FOLDER_ID=your_folder_id \
   -v $(pwd):/app \
@@ -78,7 +87,7 @@ docker run -it --rm \
 
 # Apply changes
 docker run -it --rm \
-  -e YC_TOKEN=your_token \
+  -e YC_TOKEN="$(yc iam create-token)" \
   -e YC_CLOUD_ID=your_cloud_id \
   -e YC_FOLDER_ID=your_folder_id \
   -v $(pwd):/app \
@@ -86,11 +95,20 @@ docker run -it --rm \
 
 # Destroy infrastructure
 docker run -it --rm \
-  -e YC_TOKEN=your_token \
+  -e YC_TOKEN="$(yc iam create-token)" \
   -e YC_CLOUD_ID=your_cloud_id \
   -e YC_FOLDER_ID=your_folder_id \
   -v $(pwd):/app \
   yandex-terraform destroy
+
+# Authenticate with a service account key instead of an IAM token
+docker run -it --rm \
+  -e YC_SERVICE_ACCOUNT_KEY_FILE=/keys/sa-key.json \
+  -e YC_CLOUD_ID=your_cloud_id \
+  -e YC_FOLDER_ID=your_folder_id \
+  -v $(pwd):/app \
+  -v /path/to/sa-key.json:/keys/sa-key.json:ro \
+  yandex-terraform plan
 ```
 
 ## Volume Mounting
@@ -105,9 +123,11 @@ Mount your local directory to `/app` in the container to persist Terraform state
 
 ### Common Issues
 
-1. **"YC_TOKEN must be set" error**: Ensure you pass the YC_TOKEN environment variable
-2. **Permission errors**: Check that your token has sufficient permissions in Yandex Cloud
-3. **Network issues**: Verify you can access Yandex Cloud APIs from your network
+1. **"YC_TOKEN or YC_SERVICE_ACCOUNT_KEY_FILE must be set"**: Pass an IAM token or mount a service account key
+2. **"OAuth tokens are no longer supported"**: Use `yc iam create-token` instead of an OAuth token
+3. **Permission errors**: Check that your token/key has sufficient permissions in Yandex Cloud
+4. **Network issues**: Verify you can access Yandex Cloud APIs from your network
+5. **IAM token expired**: IAM tokens live up to ~12 hours; create a new one with `yc iam create-token`
 
 ### Debug Mode
 
@@ -115,7 +135,7 @@ Run container with debug output:
 
 ```bash
 docker run -it --rm \
-  -e YC_TOKEN=your_token \
+  -e YC_TOKEN="$(yc iam create-token)" \
   -v $(pwd):/app \
   yandex-terraform plan -verbose
 ```

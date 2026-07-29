@@ -12,7 +12,7 @@ LABEL org.opencontainers.image.licenses="MIT"
 
 # Install essential utilities with pinned versions
 RUN apk add --no-cache \
-    curl=8.14.1-r2 \
+    curl=8.14.1-r3 \
     bash=5.2.37-r0 \
     && addgroup -g 1000 -S appgroup \
     && adduser -S appuser -u 1000 -G appgroup

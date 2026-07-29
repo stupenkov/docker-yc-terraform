@@ -17,7 +17,7 @@ output=$(docker run --rm "$IMAGE_TAG" version 2>&1 || true)
 echo "📥 Raw output:"
 echo "$output"
 
-expected_msg="Error: YC_TOKEN must be set"
+expected_msg="Error: YC_TOKEN or YC_SERVICE_ACCOUNT_KEY_FILE must be set"
 echo "🔍 Checking for expected error message: '$expected_msg'"
 
 if echo "$output" | grep -q "$expected_msg"; then
