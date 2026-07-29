@@ -1,5 +1,16 @@
 # Changelog
 
+## [2.0.0](https://github.com/stupenkov/docker-yc-terraform/compare/v1.0.1...v2.0.0) (2026-07-29)
+
+
+### ⚠ BREAKING CHANGES
+
+* The image no longer includes the Yandex Cloud CLI. Authenticate via YC_TOKEN or YC_SERVICE_ACCOUNT_KEY_FILE only; the entrypoint no longer calls yc config.
+
+### Features
+
+* ship thin terraform image without yc CLI ([c1a496c](https://github.com/stupenkov/docker-yc-terraform/commit/c1a496c9d3bae91d241acd295f9e19050e9a8592))
+
 ## [1.0.1](https://github.com/stupenkov/docker-yc-terraform/compare/v1.0.0...v1.0.1) (2026-07-29)
 
 
