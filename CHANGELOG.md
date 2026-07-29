@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.1](https://github.com/stupenkov/docker-yc-terraform/compare/v1.0.0...v1.0.1) (2026-07-29)
+
+
+### Bug Fixes
+
+* switch auth from OAuth to IAM token or SA key ([#77](https://github.com/stupenkov/docker-yc-terraform/issues/77)) ([506dc5c](https://github.com/stupenkov/docker-yc-terraform/commit/506dc5c7242c3797643eb400c7c2d11be25a4a4d))
+
 ## [0.4.7](https://github.com/stupenkov/docker-yc-terraform/compare/v0.4.6...v0.4.7) (2025-10-12)
 
 
